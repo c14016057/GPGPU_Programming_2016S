@@ -29,6 +29,10 @@ __global__ void Draw(char *frame) {
 		}
 		frame[y*W+x] = c;
 	}
+	if( x > 7 && x <21 && y >4 && y < 11 && x + 2*y >=27) frame[y*W+x] = '#';
+	if( x == 32 && y > 4 && y < 10) frame[y*W+x] = '|';
+	if( x == 32 && y == 10) frame[y*W+x] = '#';
+	if( x == 31 && y == 5) frame[y*W + x] = '<';
 }
 
 int main(int argc, char **argv)
