@@ -6,10 +6,12 @@
 #include <thrust/functional.h>
 #include <thrust/extrema.h>
 #include <thrust/execution_policy.h>
+#include <time.h>
+#include <sstream>
 #define MAXFEATURE 10
 #define MAXDATA 2000000
-#define MAXLABEL 5
-#define MAXDEPTH 10
+#define MAXLABEL 20
+#define MAXDEPTH 15
 #define noDDEBUG
 
 
@@ -51,8 +53,9 @@ __global__ void calImpurity(DataNode *x_train,
 					Labelcount[ x_train[i].label ]++;
 			//compute impurity
 			for (int i = 0; i < numLabel; i++) 
-					left_imp *= Labelcount[i]/(pos-left);
+					left_imp += (Labelcount[i]/(pos-left))*(Labelcount[i]/(pos-left) );
 			//mul weight
+			left_imp = 1 - left_imp;
 			left_imp *= (pos-left);
 	}
 	//right
@@ -64,8 +67,9 @@ __global__ void calImpurity(DataNode *x_train,
 					Labelcount[ x_train[i].label ]++;
 			//compute impurity
 			for (int i = 0; i < numLabel; i++) 
-					right_imp *= Labelcount[i]/(right-pos);
+					right_imp += (Labelcount[i]/(right-pos)) * (Labelcount[i]/(right-pos)) ;
 			//mul weight
+			right_imp = 1-right_imp;
 			right_imp *= (right-pos);
 	}
 	x_train[pos].impurity = right_imp + left_imp;
@@ -107,11 +111,13 @@ void rec_buildTree(DataNode *x_train,
 				ClassifyNode *parent,
 				int numX, int numLabel, int numF, int targetF,
 				int left, 
-				int right
+				int right,
+				int depth
 				) {
+
 		//printf("left = %d, right = %d targetF = %d\n",left, right, targetF);
 		//stop control
-		DataNode *min_label = thrust::min_element( thrust::device,
+		/*DataNode *min_label = thrust::min_element( thrust::device,
 						x_train+left, x_train+right,
 						cmp_label() );
 		DataNode *max_label = thrust::max_element( thrust::device,
@@ -121,19 +127,41 @@ void rec_buildTree(DataNode *x_train,
 		cudaMemcpy( cpu_min_label, min_label, sizeof(DataNode), cudaMemcpyDeviceToHost );
 		DataNode *cpu_max_label = (DataNode *)malloc( sizeof(DataNode) );
 		cudaMemcpy( cpu_max_label, max_label, sizeof(DataNode), cudaMemcpyDeviceToHost );
-
+		*/
+		{
+			if (right - left < 10) {
+				int labelcount = 0, maxlabelcount = 0, reslabel;
+				for (int label = 0; label < numLabel; label++) {
+					labelcount = thrust::count_if(thrust::device, x_train+left, x_train+right, count_label(label) );
+					if (labelcount > maxlabelcount) {
+						maxlabelcount = labelcount;
+						reslabel = label;
+					}
+				}
+				parent->featureId = -1;
+				parent->left = NULL;
+				parent->right = NULL;
+				parent->label = reslabel;
+				printf("dist cut ,depth = %d, set %d as label, rate = %lf, dist = %d\n", depth, reslabel, maxlabelcount/(double)(right-left), right-left);
+				return;
+			}
+		}
+		{
 			for(int label = 0; label < numLabel; label++) {
-				int labelcount = thrust::count(thrust::device, x_train+left, x_train+right, count_label(label) );
-				if(labelcount/(double)(right-left) > 0.9) {
+				int labelcount = thrust::count_if(thrust::device, x_train+left, x_train+right, count_label(label) );
+				if(labelcount/(double)(right-left) > 0.72) {
 					parent->featureId = -1;
 					parent->left = NULL;
 					parent->right = NULL;
 					parent->label = label;
+					printf("rate cut  depth = %d, set %d as label, rate = %lf, dist = %d\n", depth, label, labelcount/(double)(right-left), right-left);
 					return;
 				}
 			}
+		}
 		
-		//create leaf node								
+		//create leaf node
+		/*
 		if (cpu_min_label->label == cpu_max_label->label) {
 			parent->featureId = -1;
 			parent->left = NULL;
@@ -141,7 +169,28 @@ void rec_buildTree(DataNode *x_train,
 			parent->label = cpu_min_label->label;
 			return;
 		}
-
+		*/
+		/*
+		{	
+			printf("d = %d\n", depth);
+			if (depth > MAXDEPTH) {
+				int labelcount = 0, maxlabelcount = 0, reslabel;
+				for (int label = 0; label < numLabel; label++) {
+					labelcount = thrust::count_if(thrust::device, x_train+left, x_train+right, count_label(label) );
+					if (labelcount > maxlabelcount) {
+						maxlabelcount = labelcount;
+						reslabel = label;
+					}
+				}
+				parent->featureId = -1;
+				parent->left = NULL;
+				parent->right = NULL;
+				parent->label = reslabel;
+				printf("depth cut, depth = %d, set %d as label, rate = %lf, dist = %d\n", depth, reslabel, maxlabelcount/(double)(right-left), right-left);
+				return;
+			}
+		}
+		*/
 		//sort by target feature
 		thrust::sort(thrust::device, x_train + left, x_train + right, cmp_feature(targetF));
 
@@ -165,15 +214,15 @@ void rec_buildTree(DataNode *x_train,
 		//dfs create calssify tree
 		ClassifyNode *left_child = (ClassifyNode *)malloc( sizeof(ClassifyNode) );
 		parent->left = left_child;
-		rec_buildTree(x_train, left_child, numX, numLabel, numF, (targetF+1)%numF, left, shreshold_pos);
+		rec_buildTree(x_train, left_child, numX, numLabel, numF, (targetF+1)%numF, left, shreshold_pos, depth+1);
 
 		ClassifyNode *right_child = (ClassifyNode *)malloc( sizeof(ClassifyNode) );
 		parent->right = right_child;
-		rec_buildTree(x_train, right_child, numX, numLabel, numF, (targetF+1)%numF, shreshold_pos, right);
+		rec_buildTree(x_train, right_child, numX, numLabel, numF, (targetF+1)%numF, shreshold_pos, right, depth+1);
 
 		//free
-		free(cpu_min_label);
-		free(cpu_max_label);
+		//free(cpu_min_label);
+		//free(cpu_max_label);
 		free(cpu_min_impurity);
 }
 int rec_predict(DataNode *target, ClassifyNode *clTree) {
@@ -192,14 +241,30 @@ int * predict(DataNode *x_train, int numX, ClassifyNode *clTree) {
 		ret[i] = rec_predict( &x_train[i], clTree);
 	return ret;
 }
+void shuffle(DataNode *array, size_t n)
+{
+    if (n > 1) 
+    {
+        size_t i;
+        for (i = 0; i < n - 1; i++) 
+        {
+          size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
+          DataNode t = array[j];
+          array[j] = array[i];
+          array[i] = t;
+        }
+    }
+}
 DataNode gl_x_train[MAXDATA];
 int main() {
-		int H, W;
-		scanf("%d%d", &H, &W);
-		printf("Size of training data = (%d, %d)\n",H, W);
-		int numX = 0, label;
-		int numF = 2;
-		int numLabel = 2;
+//		int H, W;
+//		scanf("%d%d", &H, &W);
+//		printf("Size of training data = (%d, %d)\n",H, W);
+		int numX = 10000;//, label;
+		int numF = 10;
+		int numLabel = 10;
+		int numT = 1;
+		/*
 		for(int i = 0; i < H; i++)
 				for(int j = 0; j < W; j++) {
 						gl_x_train[numX].feature[0] = i;
@@ -208,6 +273,19 @@ int main() {
 						gl_x_train[numX].label = label;
 						numX++;
 				}
+		*/
+		for (int i = 0; i < numX; i++) {
+			static char line[1024];
+			scanf("%s", line);
+			for (int j = 0; line[j]; j++) {
+				if (line[j] == ',')	
+					line[j] = ' ';
+			}
+			std::stringstream sin(line);
+			for ( int f = 0; f < numF; f++) 
+				sin >> gl_x_train[i].feature[f];
+			sin >> gl_x_train[i].label;
+		}
 #ifdef DDEBUG
 		for(int i = 0; i < numX; i++) {
 				for(int j = 0; j < numF; j++)
@@ -215,7 +293,7 @@ int main() {
 				printf("%d\n",gl_x_train[i].label);
 		}
 #endif
-
+/*
 		//copy data to gpu
 		cudaError_t st;
 		DataNode *gpu_x_train;
@@ -226,18 +304,35 @@ int main() {
 
 		//buildtree
 		ClassifyNode *classifyTree = (ClassifyNode *)malloc( sizeof(ClassifyNode) );
+		long start = clock();
 		rec_buildTree(gpu_x_train, classifyTree, numX, numLabel, numF, 0, 0, numX);
-
+		printf("time = %lf\n",(double)(clock()-start)/CLOCKS_PER_SEC);
+*/
+		//buildforest
+		float forest_rate = 1;
+		DataNode *gpu_x_train;
+		cudaMalloc( (void**)&gpu_x_train, forest_rate*numX*sizeof(DataNode) );
+		ClassifyNode * forest[numT];
+		srand(time(NULL));
+		for (int i = 0; i < numT; i++) {
+			forest[i] = (ClassifyNode *)malloc( sizeof(ClassifyNode) );
+			shuffle(gl_x_train, numX);
+			cudaMemcpy( gpu_x_train, gl_x_train, forest_rate*numX*sizeof(DataNode), cudaMemcpyHostToDevice );
+			long start = clock();
+			rec_buildTree(gpu_x_train, forest[i], (int)numX*forest_rate, numLabel, numF, 0, 0, numX*forest_rate, 0);
+			printf("time = %lf\n",(double)(clock()-start)/CLOCKS_PER_SEC);
+		}
 		//predict
 		int *res;
+		for (int f = 0; f < numT; f++) {
 		int incorrect = 0;
-		res = predict(gl_x_train, numX, classifyTree);
+		res = predict(gl_x_train, numX, forest[f]);
 		for (int i = 0; i < numX; i++) 
 			if(res[i] != gl_x_train[i].label)
 				incorrect++;
 		printf("accuracy = %lf\n", (numX-incorrect)/(double)numX );
-
+		}
 		//free
-		free(classifyTree);
+		//free(classifyTree);
 		free(res);
 }
