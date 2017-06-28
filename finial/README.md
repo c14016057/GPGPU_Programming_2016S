@@ -18,11 +18,11 @@ We use dfs to train  decision trees on gpu and create predict tree on cpu.
 ------------------------
 ![scanmethod](https://github.com/c14016057/GPGPU_Programming_2016S/blob/master/finial/figure/scanmethod.png)
 - Scan one feature
-	-faster on create one predict node
-	-tree in not balance
+	- faster on create one predict node
+	- tree in not balance
 - Scan all feature
-	-slower on create one predict node
-	-tree is balance
+	- slower on create one predict node
+	- tree is balance
 ### Sorting each feature before compute impurity
 ---------------------------
 - Reduce time complex from O(n<sup>2</sup>) to O(nlog(n))
