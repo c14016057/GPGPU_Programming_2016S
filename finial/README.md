@@ -1,6 +1,6 @@
 Implementing Random Forest on the GPU
 =========================================
-## Instruction
+## Instroduction
 This is a finial project from a course, GPGPU. We implement random forests on the GPU.
 
 We use dfs to train  decision trees on gpu and create predict tree on cpu.
