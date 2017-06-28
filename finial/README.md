@@ -25,10 +25,10 @@ We use dfs to train  decision trees on gpu and create predict tree on cpu.
 	-tree is balance
 ### Sorting each feature before compute impurity
 ---------------------------
-- Reduce time complex from O(n<sup>2) to O(nlog(n))
+- Reduce time complex from O(n<sup>2</sup>) to O(nlog(n))
 ### Prefix sum label before counting each label proportion
 --------------------------
-- Reduce time complex from O(n<sup>2) to O(n/p)
+- Reduce time complex from O(n<sup>2</sup>) to O(n/p)
 ### Create prediction tree on CPU instead of GPU
 -------------------------
 - Reduce the time for copy memory from gpu to cpu
