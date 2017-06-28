@@ -16,7 +16,7 @@ We use dfs to train  decision trees on gpu and create predict tree on cpu.
 ## Optimization 
 ### Greedy scan one feature v.s Greedy scan all features
 ------------------------
-![scanmethod](/figure/scanmethod.png)
+![scanmethod](/figure/scanmethod.jpg)
 - Scan one feature
 	-faster on create one predict node
 	-tree in not balance
