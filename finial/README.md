@@ -13,6 +13,15 @@ We use dfs to train  decision trees on gpu and create predict tree on cpu.
 	- RR scan each feature
 	- Greedy scan all data nodes
 	- Use Gini as metrix
+### Impurity metrix
+- Gini
+	- Easy to implementation
+- Information gain
+### BFS & DFS
+- BFS
+	- Good parallism for depth prediction tree
+- DfS
+	- Good GPU utilization for balance prediction tree
 ## Optimization 
 ### Greedy scan one feature v.s Greedy scan all features
 ------------------------
