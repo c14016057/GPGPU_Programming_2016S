@@ -33,7 +33,10 @@ We use dfs to train  decision trees on gpu and create predict tree on cpu.
 -------------------------
 - Reduce the time for copy memory from gpu to cpu
 
-
+## Reference
+----------------------------
+[演算法筆記](http://www.csie.ntnu.edu.tw/~u91029/Classification.html)
+[Optimizing Random Forests on GPU](http://digitalassets.lib.berkeley.edu/techreports/ucb/text/EECS-2014-205.pdf)
 
 
 
