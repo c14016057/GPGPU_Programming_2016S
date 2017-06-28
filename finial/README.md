@@ -8,7 +8,7 @@ We use dfs to train  decision trees on gpu and create predict tree on cpu.
 ## Algorithm
 ### Greedy scan all data points to find best cut
 -----------------------
-![alt text](/figure/decisiontree.png)
+![decisiontree](https://github.com/c14016057/GPGPU_Programming_2016S/blob/master/finial/figure/decisiontree.png)
 - Decision Tree
 	- RR scan each feature
 	- Greedy scan all data nodes
