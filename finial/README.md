@@ -8,7 +8,7 @@ We use dfs to train  decision trees on gpu and create predict tree on cpu.
 ## Algorithm
 ### Greedy scan all data points to find best cut
 -----------------------
-![decisiontree](/figure/decisiontree.png)
+![alt text](/figure/decisiontree.png)
 - Decision Tree
 	- RR scan each feature
 	- Greedy scan all data nodes
@@ -16,7 +16,7 @@ We use dfs to train  decision trees on gpu and create predict tree on cpu.
 ## Optimization 
 ### Greedy scan one feature v.s Greedy scan all features
 ------------------------
-![scanmethod](/figure/scanmethod.jpg)
+![alt text](/figure/scanmethod.jpg)
 - Scan one feature
 	-faster on create one predict node
 	-tree in not balance
